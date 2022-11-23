@@ -26,7 +26,7 @@ class IG:
         self.s = requests.Session()
         self.config = Config(self.account_type)
         self.ls_client = None
-        self.version = '1.0.1'
+        self.version = '1.0.2'
         
     def getVersion(self):
         return self.version

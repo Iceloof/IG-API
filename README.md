@@ -1,9 +1,9 @@
 # ig API
 
-[![PyPI](https://img.shields.io/pypi/v/igapi)](https://pypi.org/project/igapi/)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/igapi)](https://pypistats.org/packages/igapi)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/igapi)
-![PyPI - Wheel](https://img.shields.io/pypi/wheel/igapi)
+[![PyPI](https://img.shields.io/pypi/v/ig-trading-api)](https://pypi.org/project/ig-trading-api/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/ig-trading-api)](https://pypistats.org/packages/ig-trading-api)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/ig-trading-api)
+![PyPI - Wheel](https://img.shields.io/pypi/wheel/ig-trading-api)
 ![GitHub contributors](https://img.shields.io/github/contributors/Iceloof/IG-API)
 ![GitHub issues](https://img.shields.io/github/issues-raw/Iceloof/IG-API)
 ![GitHub Action](https://github.com/Iceloof/IG-API/workflows/GitHub%20Action/badge.svg)
