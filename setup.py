@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ig-trading-api",
-    version="1.0.0",
+    version="1.0.1",
     author="Hurin Hu",
     author_email="hurin@live.ca",
     description="Simple IG trading API for Python",
