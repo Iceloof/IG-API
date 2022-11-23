@@ -27,9 +27,13 @@ ig = igapi.IG(apikey, username, password, account, acc_type)
 ```
 print(ig.getVersion())
 ```
-- login
+- Login
 ```
 ig.login()
+```
+- Logout
+```
+ig.logout()
 ```
 - Get account information
 ```

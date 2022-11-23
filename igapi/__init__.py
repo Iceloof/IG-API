@@ -6,7 +6,7 @@ import pytz
 
 class Config:
     def __init__(self, account_type):
-        if account_type == 'Live':
+        if account_type == 'LIVE':
             self.acc_type = 'LIVE'
             self.endpoint = 'https://api.ig.com/gateway/deal'
         else:
@@ -26,7 +26,7 @@ class IG:
         self.s = requests.Session()
         self.config = Config(self.account_type)
         self.ls_client = None
-        self.version = '1.0.2'
+        self.version = '1.0.3'
         
     def getVersion(self):
         return self.version
@@ -36,7 +36,10 @@ class IG:
         self.CST = response.headers['CST']
         self.X_SECURITY_TOKEN = response.headers['X-SECURITY-TOKEN']
         
-        
+    def logout(self):
+        response = self.s.post(self.config.endpoint+'/session', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json; charset=UTF-8', 'Accept': 'application/json; charset=UTF-8', '_method':'DELETE', 'VERSION': '1'})
+        return response.text 
+    
     def account(self):
         response = self.s.get(self.config.endpoint+'/accounts', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '1'})
         time.sleep(0.5)
