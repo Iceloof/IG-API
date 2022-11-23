@@ -1,4 +1,4 @@
-# ig API
+# IG.com Trading API
 
 [![PyPI](https://img.shields.io/pypi/v/ig-trading-api)](https://pypi.org/project/ig-trading-api/)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/ig-trading-api)](https://pypistats.org/packages/ig-trading-api)
