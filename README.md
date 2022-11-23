@@ -11,11 +11,11 @@
 
 ## Install
 ```
-pip install igapi
+pip install ig-trading-api
 ```
 or
 ```
-pip install --upgrade igapi
+pip install --upgrade ig-trading-api
 ```
 ## Usage
 - Initializing

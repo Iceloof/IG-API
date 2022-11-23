@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="igapi",
+    name="ig-trading-api",
     version="1.0.0",
     author="Hurin Hu",
     author_email="hurin@live.ca",
