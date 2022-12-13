@@ -81,7 +81,7 @@ watchlist = ig.watchlist(id)
 ```
 - Get account transactions
 ```
-transactions = ig.getAccountTransactions()
+transactions = ig.getAccountTransactions(type='ALL',period=86400)
 ```
 - Get account activities
 ```

@@ -26,7 +26,7 @@ class IG:
         self.s = requests.Session()
         self.config = Config(self.account_type)
         self.ls_client = None
-        self.version = '1.0.3'
+        self.version = '1.0.4'
         
     def getVersion(self):
         return self.version
@@ -48,8 +48,8 @@ class IG:
         df = df.set_index('accountId')
         return df
     
-    def getAccountTransactions(self):
-        response = self.s.get(self.config.endpoint+'/history/transactions', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'}, data={'pageSize': 0})
+    def getAccountTransactions(self, type='ALL', period=86400):
+        response = self.s.get(self.config.endpoint+'/history/transactions?type='+type+'&maxSpanSeconds='+str(period), headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'}, data={'pageSize': 0})
         time.sleep(0.5)
         data = json.loads(response.text)
         df = pd.DataFrame(data['transactions'])
