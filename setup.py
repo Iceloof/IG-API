@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ig-trading-api",
-    version="1.0.4",
+    version="1.0.5",
     author="Hurin Hu",
     author_email="hurin@live.ca",
     description="Simple IG trading API for Python",
@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/Iceloof/IG-API",
     packages=setuptools.find_packages(),
-    install_requires=['pytz','pandas'],
+    install_requires=['pytz','pandas','pycryptodome'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

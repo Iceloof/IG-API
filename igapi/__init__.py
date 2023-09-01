@@ -3,6 +3,9 @@ import pandas as pd
 from datetime import datetime as dt, timedelta, date
 import time
 import pytz
+from base64 import b64encode, b64decode
+from Crypto.Cipher import PKCS1_v1_5
+from Crypto.PublicKey import RSA
 
 class Config:
     def __init__(self, account_type):
@@ -26,13 +29,23 @@ class IG:
         self.s = requests.Session()
         self.config = Config(self.account_type)
         self.ls_client = None
-        self.version = '1.0.4'
+        self.version = '1.0.5'
         
     def getVersion(self):
         return self.version
-    
+
+    def encrypted_password(self, key, timestamp, password):
+        rsakey = RSA.importKey(b64decode(key))
+        string = password + "|" + str(int(timestamp))
+        message = b64encode(string.encode())
+        return b64encode(PKCS1_v1_5.new(rsakey).encrypt(message)).decode()
+
     def login(self):
-        response = self.s.post(self.config.endpoint+'/session', headers={'X-IG-API-KEY': self.api_key, 'Content-Type': 'application/json; charset=UTF-8', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'}, data=json.dumps({"identifier":self.username, "password":self.password}))
+        response = self.s.get(self.config.endpoint+'/session/encryptionKey', headers={'X-IG-API-KEY': self.api_key, 'Content-Type': 'application/json; charset=UTF-8', 'Accept': 'application/json; charset=UTF-8'})
+        encryption_key = data['encryptionKey']
+        timestamp = data['timeStamp']
+        encrypted_password = self.encrypted_password(encryption_key,timestamp,self.password)
+        response = self.s.post(self.config.endpoint+'/session', headers={'X-IG-API-KEY': self.api_key, 'Content-Type': 'application/json; charset=UTF-8', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'}, data=json.dumps({"identifier":self.username, "password":encrypted_password,"encryptedPassword":True}))
         self.CST = response.headers['CST']
         self.X_SECURITY_TOKEN = response.headers['X-SECURITY-TOKEN']
         
@@ -42,7 +55,6 @@ class IG:
     
     def account(self):
         response = self.s.get(self.config.endpoint+'/accounts', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '1'})
-        time.sleep(0.5)
         data = json.loads(response.text)
         df = pd.DataFrame.from_dict(data['accounts'])
         df = df.set_index('accountId')
@@ -50,14 +62,12 @@ class IG:
     
     def getAccountTransactions(self, type='ALL', period=86400):
         response = self.s.get(self.config.endpoint+'/history/transactions?type='+type+'&maxSpanSeconds='+str(period), headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'}, data={'pageSize': 0})
-        time.sleep(0.5)
         data = json.loads(response.text)
         df = pd.DataFrame(data['transactions'])
         return df
     
     def getAccountActivities(self):
         response = self.s.get(self.config.endpoint+'/history/activity', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'}, data={'pageSize': 0})
-        time.sleep(0.5)
         data = json.loads(response.text)
         df = pd.DataFrame(data['activities'])
         return df
@@ -87,63 +97,85 @@ class IG:
         return acc.loc[account_num, 'balance']['profitLoss']
     
     def watchlists(self):
-        response = self.s.get(self.config.endpoint+'/watchlists', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '1'})
-        time.sleep(0.5)
-        data = json.loads(response.text)
-        df = pd.DataFrame(data['watchlists'])
-        df = df.set_index('name')
-        return df
+        try:
+            response = self.s.get(self.config.endpoint+'/watchlists', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '1'})
+            data = json.loads(response.text)
+            df = pd.DataFrame(data['watchlists'])
+            df = df.set_index('name')
+            return df
+        except Exception as e:
+            logging.error(e)
+            return pd.DataFrame()
     
     def watchlist(self, id):
-        response = self.s.get(self.config.endpoint+'/watchlists/'+id, headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '1'})
-        time.sleep(0.5)
-        data = json.loads(response.text)
-        df = pd.DataFrame(data['markets'])
-        df = df.set_index('epic')
-        return df
+        try:
+            response = self.s.get(self.config.endpoint+'/watchlists/'+id, headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '1'})
+            data = json.loads(response.text)
+            df = pd.DataFrame(data['markets'])
+            df = df.set_index('epic')
+            return df
+        except Exception as e:
+            logging.error(e)
+            return pd.DataFrame()
     
     def getPrice(self, epic, resolution='', numPoints=0):
-        response = self.s.get(self.config.endpoint+'/markets/'+epic, headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'})
-        time.sleep(0.5)
-        data = json.loads(response.text)
-        tz = pytz.timezone('Europe/London')
-        d = dt.now(tz).strftime("%Y-%m-%d")
-        df = pd.DataFrame([data['snapshot']])
-        df['updateTime'] = d+' '+df['updateTime']
-        return df
+        try:
+            response = self.s.get(self.config.endpoint+'/markets/'+epic, headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'})
+            data = json.loads(response.text)
+            tz = pytz.timezone('Europe/London')
+            d = dt.now(tz).strftime("%Y-%m-%d")
+            df = pd.DataFrame([data['snapshot']])
+            df['updateTime'] = d+' '+df['updateTime']
+            return df
+        except Exception as e:
+            logging.error(e)
+            return pd.DataFrame()
 
     def getPrices(self, epic, resolution='', numPoints=0, start='', end=''):
-        params = epic
-        if resolution != '' and numPoints != 0:
-            params += '/'+resolution+'/'+str(numPoints)
-        elif resolution != '' and start != '' and end != '':
-            params += '/'+resolution+'/'+start+'/'+end
-        response = self.s.get(self.config.endpoint+'/prices/'+params, headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'})
-        data = json.loads(response.text)
-        df = pd.DataFrame(data['prices'])
-        return df
+        try:
+            params = epic
+            if resolution != '' and numPoints != 0:
+                params += '/'+resolution+'/'+str(numPoints)
+            elif resolution != '' and start != '' and end != '':
+                params += '/'+resolution+'/'+start+'/'+end
+            response = self.s.get(self.config.endpoint+'/prices/'+params, headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'})
+            data = json.loads(response.text)
+            df = pd.DataFrame(data['prices'])
+            return df
+        except Exception as e:
+            logging.error(e)
+            return pd.DataFrame()
     
     def getOpenPosition(self, dealId=''):
-        params = ''
-        if dealId != '':
-            params = '/'+str(dealId)
-        response = self.s.get(self.config.endpoint+'/positions'+params, headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'})
-        time.sleep(0.5)
-        data = json.loads(response.text)
-        if dealId != '': 
-            df = pd.DataFrame(data)
-        else:
-            df = pd.DataFrame(data['positions'])
-        return df
+        try:
+            params = ''
+            if dealId != '':
+                params = '/'+str(dealId)
+            response = self.s.get(self.config.endpoint+'/positions'+params, headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'})
+            data = json.loads(response.text)
+            if dealId != '': 
+                df = pd.DataFrame(data)
+            else:
+                df = pd.DataFrame(data['positions'])
+            return df
+        except Exception as e:
+            logging.error(e)
+            return pd.DataFrame()
     
     def closePosition(self, dealId, direction, expiry, orderType, size):
-        response = self.s.post(self.config.endpoint+'/positions/otc', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', '_method':'DELETE', 'VERSION': '1'}, data=json.dumps({"dealId": dealId, "direction": direction, "expiry": expiry, "orderType": orderType, "size": size}))
-        time.sleep(0.5)
-        data = json.loads(response.text)
-        return data['dealReference']
+        try:
+            response = self.s.post(self.config.endpoint+'/positions/otc', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', '_method':'DELETE', 'VERSION': '1'}, data=json.dumps({"dealId": dealId, "direction": direction, "expiry": expiry, "orderType": orderType, "size": size}))
+            data = json.loads(response.text)
+            return data['dealReference']
+        except Exception as e:
+                logging.error(e)
+            return pd.DataFrame()
     
     def createPosition(self, currency, direction, epic, expiry, orderType, size, limitDistance=None, stopDistance=None, forceOpen=True, guaranteedStop=False):
-        response = self.s.post(self.config.endpoint+'/positions/otc', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'}, data=json.dumps({"currencyCode": currency, "direction": direction, "epic": epic, "expiry": expiry, "orderType": orderType, "size": size, "limitDistance": limitDistance, "stopDistance": stopDistance, "forceOpen": forceOpen, "guaranteedStop": guaranteedStop}))
-        time.sleep(0.5)
-        data = json.loads(response.text)
-        return data['dealReference']
+        try:
+            response = self.s.post(self.config.endpoint+'/positions/otc', headers={'X-IG-API-KEY': self.api_key, 'CST': self.CST, 'X-SECURITY-TOKEN': self.X_SECURITY_TOKEN, 'Content-Type': 'application/json;', 'Accept': 'application/json; charset=UTF-8', 'VERSION': '2'}, data=json.dumps({"currencyCode": currency, "direction": direction, "epic": epic, "expiry": expiry, "orderType": orderType, "size": size, "limitDistance": limitDistance, "stopDistance": stopDistance, "forceOpen": forceOpen, "guaranteedStop": guaranteedStop}))
+            data = json.loads(response.text)
+            return data['dealReference']
+        except Exception as e:
+            logging.error(e)
+            return pd.DataFrame()
