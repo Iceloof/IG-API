@@ -42,6 +42,7 @@ class IG:
 
     def login(self):
         response = self.s.get(self.config.endpoint+'/session/encryptionKey', headers={'X-IG-API-KEY': self.api_key, 'Content-Type': 'application/json; charset=UTF-8', 'Accept': 'application/json; charset=UTF-8'})
+        data = response.json()
         encryption_key = data['encryptionKey']
         timestamp = data['timeStamp']
         encrypted_password = self.encrypted_password(encryption_key,timestamp,self.password)
